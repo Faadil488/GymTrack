@@ -1,0 +1,32 @@
+services:
+  # Django REST API Web Service
+  - type: web
+    name: gymtrack-api
+    runtime: python
+    buildCommand: "./build.sh"
+    startCommand: "gunicorn gymtrack.wsgi:application --bind 0.0.0.0:$PORT"
+    rootDir: backend
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.12.9
+      - key: DEBUG
+        value: "False"
+      - key: SECRET_KEY
+        generateValue: true
+      - key: DATABASE_URL
+        fromDatabase:
+          name: gymtrack-db
+          property: connectionString
+      - key: ALLOWED_HOSTS
+        value: ".onrender.com,localhost,127.0.0.1"
+      - key: CORS_ALLOWED_ORIGINS
+        value: "https://*.vercel.app,http://localhost:5173"
+      - key: CSRF_TRUSTED_ORIGINS
+        value: "https://*.onrender.com,https://*.vercel.app"
+
+databases:
+  # Production PostgreSQL Database
+  - name: gymtrack-db
+    databaseName: gymtrack
+    user: gymtrack_user
+    plan: free
