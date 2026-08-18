@@ -120,3 +120,28 @@ class GymTrackAPITests(APITestCase):
         data = {'name': 'Squat', 'sets': 3, 'reps': 0, 'weight': 50.00}
         response = self.client.post(exercise_create_url, data)
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+        # Test empty exercise name validation
+        data = {'name': '   ', 'sets': 3, 'reps': 10, 'weight': 50.00}
+        response = self.client.post(exercise_create_url, data)
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_transaction_atomic_rollback(self):
+        self.set_auth_header(self.user_a_token)
+        workout_url = reverse('workout-list')
+        
+        # Payload with one valid exercise and one invalid exercise (negative weight)
+        data = {
+            'date': '2026-08-18',
+            'exercises': [
+                {'name': 'Valid Movement', 'sets': 3, 'reps': 10, 'weight': 50.00},
+                {'name': 'Invalid Movement', 'sets': 3, 'reps': 10, 'weight': -10.00}
+            ]
+        }
+        
+        response = self.client.post(workout_url, data, format='json')
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        # Verify complete rollback: no workout session or exercises created
+        self.assertEqual(WorkoutSession.objects.count(), 0)
+        self.assertEqual(Exercise.objects.count(), 0)
+

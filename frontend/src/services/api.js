@@ -9,6 +9,21 @@ const api = axios.create({
   },
 });
 
+let isRefreshing = false;
+let failedQueue = [];
+
+const processQueue = (error, token = null) => {
+  failedQueue.forEach((prom) => {
+    if (error) {
+      prom.reject(error);
+    } else {
+      prom.resolve(token);
+    }
+  });
+
+  failedQueue = [];
+};
+
 // Interceptor to add access token to requests
 api.interceptors.request.use(
   (config) => {
@@ -38,7 +53,20 @@ api.interceptors.response.use(
         return Promise.reject(error);
       }
 
+      if (isRefreshing) {
+        return new Promise((resolve, reject) => {
+          failedQueue.push({ resolve, reject });
+        })
+          .then((token) => {
+            originalRequest.headers.Authorization = `Bearer ${token}`;
+            return api(originalRequest);
+          })
+          .catch((err) => Promise.reject(err));
+      }
+
       originalRequest._retry = true;
+      isRefreshing = true;
+
       const refreshToken = localStorage.getItem('refreshToken');
 
       if (refreshToken) {
@@ -50,17 +78,24 @@ api.interceptors.response.use(
 
           const newAccessToken = response.data.access;
           localStorage.setItem('accessToken', newAccessToken);
+          if (response.data.refresh) {
+            localStorage.setItem('refreshToken', response.data.refresh);
+          }
 
-          // Update header and retry the request
+          api.defaults.headers.common['Authorization'] = `Bearer ${newAccessToken}`;
           originalRequest.headers.Authorization = `Bearer ${newAccessToken}`;
+
+          processQueue(null, newAccessToken);
           return api(originalRequest);
         } catch (refreshError) {
-          // If refresh fails, clear auth data and redirect
+          processQueue(refreshError, null);
           localStorage.removeItem('accessToken');
           localStorage.removeItem('refreshToken');
           localStorage.removeItem('user');
           window.location.href = '/login';
           return Promise.reject(refreshError);
+        } finally {
+          isRefreshing = false;
         }
       } else {
         localStorage.removeItem('accessToken');
@@ -75,3 +110,4 @@ api.interceptors.response.use(
 );
 
 export default api;
+
