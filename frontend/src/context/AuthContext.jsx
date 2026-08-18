@@ -1,6 +1,25 @@
 import { createContext, useState, useEffect, useContext } from 'react';
 import api from '../services/api';
 
+const isTokenExpired = (token) => {
+  if (!token) return true;
+  try {
+    const base64Url = token.split('.')[1];
+    if (!base64Url) return true;
+    const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+    const jsonPayload = decodeURIComponent(
+      atob(base64)
+        .split('')
+        .map((c) => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2))
+        .join('')
+    );
+    const { exp } = JSON.parse(jsonPayload);
+    return Date.now() >= exp * 1000 - 5000;
+  } catch (e) {
+    return true;
+  }
+};
+
 const AuthContext = createContext(null);
 
 export const AuthProvider = ({ children }) => {
@@ -11,12 +30,21 @@ export const AuthProvider = ({ children }) => {
     // Check if user is already logged in on application mount
     const storedUser = localStorage.getItem('user');
     const token = localStorage.getItem('accessToken');
+    const refreshToken = localStorage.getItem('refreshToken');
+
     if (storedUser && token) {
-      try {
-        setUser(JSON.parse(storedUser));
-      } catch (e) {
-        // Corrupted localStorage user data
-        localStorage.clear();
+      if (refreshToken && isTokenExpired(refreshToken)) {
+        // Refresh token itself is expired, session cannot be renewed
+        localStorage.removeItem('accessToken');
+        localStorage.removeItem('refreshToken');
+        localStorage.removeItem('user');
+        setUser(null);
+      } else {
+        try {
+          setUser(JSON.parse(storedUser));
+        } catch (e) {
+          localStorage.clear();
+        }
       }
     }
     setLoading(false);

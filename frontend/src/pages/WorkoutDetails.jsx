@@ -19,7 +19,8 @@ import {
 import { calculateWorkoutStreak } from '../utils/workoutCalculations';
 
 const WorkoutDetails = () => {
-  const { id } = useParams();
+  const { id: rawId } = useParams();
+  const id = rawId ? rawId.replace(/^:/, '') : '';
   const navigate = useNavigate();
   const location = useLocation();
   const [workout, setWorkout] = useState(null);
@@ -39,6 +40,12 @@ const WorkoutDetails = () => {
   const [insightDetails, setInsightDetails] = useState(null);
 
   useEffect(() => {
+    if (!id || isNaN(Number(id))) {
+      setError('Invalid workout session ID.');
+      setLoading(false);
+      return;
+    }
+
     fetchWorkoutDetails();
     if (location.state?.showSuccessInsight) {
       setShowInsight(true);
@@ -59,7 +66,11 @@ const WorkoutDetails = () => {
       }
     } catch (err) {
       console.error('Error fetching workout details:', err);
-      setError('Unable to load session details. It may have been deleted.');
+      if (err.response?.status === 401) {
+        setError('Session expired. Please log in again.');
+      } else {
+        setError('Unable to load session details. It may have been deleted.');
+      }
     } finally {
       setLoading(false);
     }
