@@ -1,0 +1,37 @@
+@import "tailwindcss";
+
+/* Global overrides for dark fitness theme */
+body {
+  background-color: #030712;
+  color: #f8fafc;
+  font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  background-image: 
+    radial-gradient(at 0% 0%, rgba(163, 230, 53, 0.015) 0px, transparent 50%),
+    radial-gradient(at 50% 0%, rgba(16, 185, 129, 0.01) 0px, transparent 50%);
+  background-attachment: fixed;
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: #020617;
+}
+::-webkit-scrollbar-thumb {
+  background: #1e293b;
+  border-radius: 9999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #a3e635;
+}
+
+/* Custom visual style helpers */
+.text-glow {
+  text-shadow: 0 0 15px rgba(163, 230, 53, 0.2);
+}
+
+.border-glow:focus {
+  box-shadow: 0 0 15px rgba(163, 230, 53, 0.15);
+}
