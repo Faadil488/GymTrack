@@ -91,14 +91,9 @@ const Login = () => {
           </div>
         </div>
 
-        {/* Footer brand list */}
-        <div className="flex items-center gap-8 border-t border-slate-900/60 pt-6">
+        {/* Footer text */}
+        <div className="flex items-center border-t border-slate-900/60 pt-6">
           <span className="text-slate-500 text-xxs font-black uppercase tracking-widest block">Trusted By Athletes</span>
-          <div className="flex items-center gap-6 text-slate-600 font-bold tracking-widest text-xs select-none">
-            <span className="hover:text-slate-500 transition-colors uppercase">GYMSHARK</span>
-            <span className="hover:text-slate-500 transition-colors uppercase">NIKE</span>
-            <span className="hover:text-slate-500 transition-colors uppercase">UNDER ARMOUR</span>
-          </div>
         </div>
       </div>
 

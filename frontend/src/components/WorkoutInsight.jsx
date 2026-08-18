@@ -1,4 +1,4 @@
-import { Lightbulb, Flame, Award, Hash, Zap } from 'lucide-react';
+import { Lightbulb, Flame } from 'lucide-react';
 import { formatDateShort, calculateWorkoutStreak } from '../utils/workoutCalculations';
 
 const WorkoutInsight = ({ workouts }) => {

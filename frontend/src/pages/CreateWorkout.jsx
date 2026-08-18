@@ -5,13 +5,16 @@ import Navbar from '../components/Navbar';
 import { Plus, Trash2, Dumbbell, Save, ArrowLeft } from 'lucide-react';
 
 const CreateWorkout = () => {
-  const [date, setDate] = useState(() => {
+  const getTodayStr = () => {
     const today = new Date();
     const year = today.getFullYear();
     const month = String(today.getMonth() + 1).padStart(2, '0');
     const day = String(today.getDate()).padStart(2, '0');
     return `${year}-${month}-${day}`;
-  });
+  };
+  const todayStr = getTodayStr();
+
+  const [date, setDate] = useState(todayStr);
   
   const [exercises, setExercises] = useState([
     { name: '', sets: 3, reps: 10, weight: 40.00 }
@@ -60,6 +63,12 @@ const CreateWorkout = () => {
       return;
     }
 
+    if (date > todayStr) {
+      setError('Workout date cannot be in the future.');
+      setLoading(false);
+      return;
+    }
+
     for (let i = 0; i < exercises.length; i++) {
       const ex = exercises[i];
       if (!ex.name.trim()) {
@@ -99,7 +108,8 @@ const CreateWorkout = () => {
       navigate(`/workouts/${response.data.id}`, { state: { showSuccessInsight: true } });
     } catch (err) {
       console.error('Error saving workout:', err);
-      const detail = err.response?.data?.detail || 'Unable to save workout session. Verify your input fields.';
+      const dateErr = err.response?.data?.date?.[0];
+      const detail = dateErr || err.response?.data?.detail || (typeof err.response?.data === 'string' ? err.response.data : 'Unable to save workout session. Verify your input fields.');
       setError(detail);
     } finally {
       setLoading(false);
@@ -145,6 +155,7 @@ const CreateWorkout = () => {
               id="date"
               type="date"
               required
+              max={todayStr}
               className="w-full sm:w-64 px-4 py-2 bg-slate-950 border border-slate-855 rounded-xl text-white text-sm focus:outline-none focus:ring-2 focus:ring-lime-400/30 focus:border-lime-400 transition-all cursor-pointer font-bold"
               value={date}
               onChange={(e) => setDate(e.target.value)}

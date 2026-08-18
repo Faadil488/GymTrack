@@ -16,7 +16,7 @@ import {
   Sparkles,
   Flame
 } from 'lucide-react';
-import { calculateWorkoutStreak } from '../utils/workoutCalculations';
+import { calculateWorkoutStreak, formatDateDisplay } from '../utils/workoutCalculations';
 
 const WorkoutDetails = () => {
   const { id: rawId } = useParams();
@@ -27,6 +27,11 @@ const WorkoutDetails = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
+
+  const [isEditingDate, setIsEditingDate] = useState(false);
+  const [editDate, setEditDate] = useState('');
+  const [dateError, setDateError] = useState('');
+  const [dateSaving, setDateSaving] = useState(false);
 
   const [editingId, setEditingId] = useState(null);
   const [editForm, setEditForm] = useState({ name: '', sets: '', reps: '', weight: '' });
@@ -104,6 +109,57 @@ const WorkoutDetails = () => {
       });
     } catch (e) {
       console.error("Failed to compile success insights:", e);
+    }
+  };
+
+  const getTodayStr = () => {
+    const today = new Date();
+    const year = today.getFullYear();
+    const month = String(today.getMonth() + 1).padStart(2, '0');
+    const day = String(today.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  };
+  const todayStr = getTodayStr();
+
+  const handleStartEditDate = () => {
+    setEditDate(workout?.date || todayStr);
+    setDateError('');
+    setIsEditingDate(true);
+  };
+
+  const handleCancelEditDate = () => {
+    setIsEditingDate(false);
+    setDateError('');
+  };
+
+  const handleSaveDate = async (e) => {
+    e.preventDefault();
+    setDateError('');
+
+    if (!editDate) {
+      setDateError('Date is required.');
+      return;
+    }
+
+    if (editDate > todayStr) {
+      setDateError('Workout date cannot be in the future.');
+      return;
+    }
+
+    setDateSaving(true);
+    try {
+      const response = await api.patch(`/workouts/${id}/`, { date: editDate });
+      setWorkout(prev => ({ ...prev, date: response.data.date }));
+      setIsEditingDate(false);
+      setSuccessMsg('Workout date updated successfully!');
+      setTimeout(() => setSuccessMsg(''), 3000);
+    } catch (err) {
+      console.error('Error updating workout date:', err);
+      const dateErr = err.response?.data?.date?.[0];
+      const detail = dateErr || err.response?.data?.detail || 'Failed to update workout date.';
+      setDateError(detail);
+    } finally {
+      setDateSaving(false);
     }
   };
 
@@ -322,13 +378,71 @@ const WorkoutDetails = () => {
         )}
 
         {/* Workout Details Header */}
-        <div className="bg-slate-900/30 backdrop-blur-md border border-slate-900 p-6 rounded-2xl shadow-md space-y-2">
-          <div className="flex items-center gap-2 text-slate-400">
-            <Calendar className="h-5 w-5 text-lime-400" />
-            <span className="text-base sm:text-lg font-black uppercase tracking-wide">
-              {new Date(workout.date).toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
-            </span>
-          </div>
+        <div className="bg-slate-900/30 backdrop-blur-md border border-slate-900 p-6 rounded-2xl shadow-md space-y-3">
+          {successMsg && (
+            <div className="bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs p-3 rounded-xl flex items-center gap-2">
+              <Check className="h-4 w-4 shrink-0" />
+              <span>{successMsg}</span>
+            </div>
+          )}
+
+          {isEditingDate ? (
+            <form onSubmit={handleSaveDate} className="space-y-3">
+              <div className="flex items-center justify-between">
+                <span className="text-xxs font-black text-lime-450 uppercase tracking-wider">Change Workout Date</span>
+                {dateError && <span className="text-red-400 text-xxs font-semibold">{dateError}</span>}
+              </div>
+              <div className="flex flex-wrap items-center gap-3">
+                <input
+                  type="date"
+                  required
+                  max={todayStr}
+                  className="px-4 py-2 bg-slate-950 border border-slate-855 rounded-xl text-white text-sm focus:outline-none focus:ring-2 focus:ring-lime-400/30 focus:border-lime-400 transition-all font-bold cursor-pointer"
+                  value={editDate}
+                  onChange={(e) => setEditDate(e.target.value)}
+                />
+                <button
+                  type="button"
+                  onClick={handleCancelEditDate}
+                  className="flex items-center gap-1 px-3.5 py-2 border border-slate-900 bg-slate-950 hover:bg-slate-900 text-slate-400 hover:text-white rounded-full text-xs font-bold uppercase tracking-wider transition-all cursor-pointer"
+                >
+                  <X className="h-3.5 w-3.5" />
+                  <span>Cancel</span>
+                </button>
+                <button
+                  type="submit"
+                  disabled={dateSaving}
+                  className="flex items-center gap-1 px-4 py-2 bg-lime-400 hover:bg-lime-300 text-slate-950 rounded-full text-xs font-black uppercase tracking-wider transition-all cursor-pointer shadow-lg shadow-lime-400/10"
+                >
+                  {dateSaving ? (
+                    <div className="h-3.5 w-3.5 border-2 border-slate-950 border-t-transparent rounded-full animate-spin"></div>
+                  ) : (
+                    <>
+                      <Check className="h-3.5 w-3.5" />
+                      <span>Save Date</span>
+                    </>
+                  )}
+                </button>
+              </div>
+            </form>
+          ) : (
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2 text-slate-400">
+                <Calendar className="h-5 w-5 text-lime-400" />
+                <span className="text-base sm:text-lg font-black uppercase tracking-wide text-white">
+                  {formatDateDisplay(workout.date)}
+                </span>
+              </div>
+              <button
+                onClick={handleStartEditDate}
+                className="flex items-center gap-1 text-xs font-bold text-slate-400 hover:text-lime-400 bg-slate-950/60 border border-slate-850 hover:border-slate-800 px-3 py-1.5 rounded-full uppercase tracking-wider transition-all cursor-pointer"
+                title="Edit workout date"
+              >
+                <Edit2 className="h-3.5 w-3.5" />
+                <span>Edit Date</span>
+              </button>
+            </div>
+          )}
           <p className="text-xxs text-slate-500 font-bold uppercase tracking-wider">Logged on {new Date(workout.created_at).toLocaleString()}</p>
         </div>
 

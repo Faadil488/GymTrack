@@ -1,5 +1,6 @@
 from django.db import transaction
 from django.contrib.auth.models import User
+from django.utils import timezone
 from rest_framework import serializers
 from .models import WorkoutSession, Exercise
 
@@ -44,6 +45,12 @@ class WorkoutSessionSerializer(serializers.ModelSerializer):
     class Meta:
         model = WorkoutSession
         fields = ('id', 'date', 'owner', 'exercises', 'created_at')
+
+    def validate_date(self, value):
+        today = timezone.localdate()
+        if value > today:
+            raise serializers.ValidationError("Workout date cannot be in the future.")
+        return value
 
     @transaction.atomic
     def create(self, validated_data):

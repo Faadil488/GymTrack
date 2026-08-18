@@ -70,15 +70,22 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'gymtrack.wsgi.application'
 
-# Database
-# https://docs.djangoproject.com/en/6.1/ref/settings/#databases
+import dj_database_url
 
-db_name = os.getenv('DB_NAME')
-if db_name:
+database_url = os.getenv('DATABASE_URL')
+if database_url:
+    DATABASES = {
+        'default': dj_database_url.config(
+            default=database_url,
+            conn_max_age=int(os.getenv('CONN_MAX_AGE', '600')),
+            conn_health_checks=True,
+        )
+    }
+elif os.getenv('DB_NAME'):
     DATABASES = {
         'default': {
             'ENGINE': 'django.db.backends.postgresql',
-            'NAME': db_name,
+            'NAME': os.getenv('DB_NAME'),
             'USER': os.getenv('DB_USER'),
             'PASSWORD': os.getenv('DB_PASSWORD'),
             'HOST': os.getenv('DB_HOST', 'localhost'),
@@ -139,6 +146,7 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 # Security settings for production
 if not DEBUG:
+    SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
     SECURE_SSL_REDIRECT = os.getenv('SECURE_SSL_REDIRECT', 'True').lower() in ('true', '1', 't')
     SESSION_COOKIE_SECURE = True
     CSRF_COOKIE_SECURE = True
@@ -179,6 +187,13 @@ else:
         "http://127.0.0.1:5173",
     ]
 
+csrf_trusted_env = os.getenv('CSRF_TRUSTED_ORIGINS')
+if csrf_trusted_env:
+    CSRF_TRUSTED_ORIGINS = [o.strip() for o in csrf_trusted_env.split(',') if o.strip()]
+elif cors_origins_env:
+    CSRF_TRUSTED_ORIGINS = [o.strip() for o in cors_origins_env.split(',') if o.strip()]
+
 if DEBUG:
     CORS_ALLOW_ALL_ORIGINS = True
+
 

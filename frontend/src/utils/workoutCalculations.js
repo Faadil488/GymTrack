@@ -1,14 +1,29 @@
 // GymTrack Summary & Analytics Calculations
 
+// Parse a "YYYY-MM-DD" string into a Date object at local midnight
+export const parseLocalDate = (dateString) => {
+  if (!dateString) return new Date();
+  if (dateString.includes('T')) {
+    const d = new Date(dateString);
+    d.setHours(0, 0, 0, 0);
+    return d;
+  }
+  const [year, month, day] = dateString.split('-').map(Number);
+  return new Date(year, month - 1, day, 0, 0, 0, 0);
+};
+
 // Format date to a readable form (e.g., "Aug 18")
 export const formatDateShort = (dateString) => {
   if (!dateString) return '';
-  const date = new Date(dateString);
-  // Add timezone offset to prevent shifting dates due to UTC conversion
-  const userTimezoneOffset = date.getTimezoneOffset() * 60000;
-  const localDate = new Date(date.getTime() + userTimezoneOffset);
-  
-  return localDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  const date = parseLocalDate(dateString);
+  return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+};
+
+// Format date with custom options (e.g., full weekday, date, year)
+export const formatDateDisplay = (dateString, options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }) => {
+  if (!dateString) return '';
+  const date = parseLocalDate(dateString);
+  return date.toLocaleDateString('en-US', options);
 };
 
 // Calculate total exercises
@@ -86,10 +101,15 @@ export const calculateWorkoutStreak = (workouts) => {
   if (!workouts || workouts.length === 0) return 0;
   
   // Extract and deduplicate dates
-  const uniqueDates = [...new Set(workouts.map(w => w.date))];
+  const uniqueDates = [...new Set(workouts.map(w => w.date).filter(Boolean))];
+  if (uniqueDates.length === 0) return 0;
   
   // Sort dates descending (newest first)
-  uniqueDates.sort((a, b) => new Date(b) - new Date(a));
+  uniqueDates.sort((a, b) => {
+    const da = parseLocalDate(a);
+    const db = parseLocalDate(b);
+    return db.getTime() - da.getTime();
+  });
   
   const today = new Date();
   today.setHours(0, 0, 0, 0);
@@ -97,29 +117,20 @@ export const calculateWorkoutStreak = (workouts) => {
   const yesterday = new Date(today);
   yesterday.setDate(yesterday.getDate() - 1);
   
-  const newestWorkoutDate = new Date(uniqueDates[0]);
-  // Account for timezones when parsing date string
-  const userTimezoneOffset = newestWorkoutDate.getTimezoneOffset() * 60000;
-  const newestLocalWorkoutDate = new Date(newestWorkoutDate.getTime() + userTimezoneOffset);
-  newestLocalWorkoutDate.setHours(0, 0, 0, 0);
+  const newestWorkoutDate = parseLocalDate(uniqueDates[0]);
   
   // If the newest workout is older than yesterday, the streak is currently 0
-  if (newestLocalWorkoutDate < yesterday && newestLocalWorkoutDate.getTime() !== today.getTime()) {
+  if (newestWorkoutDate.getTime() < yesterday.getTime()) {
     return 0;
   }
   
   let streak = 1;
   for (let i = 0; i < uniqueDates.length - 1; i++) {
-    const current = new Date(uniqueDates[i]);
-    const currentLocal = new Date(current.getTime() + current.getTimezoneOffset() * 60000);
-    currentLocal.setHours(0, 0, 0, 0);
-    
-    const next = new Date(uniqueDates[i + 1]);
-    const nextLocal = new Date(next.getTime() + next.getTimezoneOffset() * 60000);
-    nextLocal.setHours(0, 0, 0, 0);
+    const current = parseLocalDate(uniqueDates[i]);
+    const next = parseLocalDate(uniqueDates[i + 1]);
     
     // Difference in days
-    const diffTime = Math.abs(currentLocal - nextLocal);
+    const diffTime = current.getTime() - next.getTime();
     const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24));
     
     if (diffDays === 1) {
@@ -127,7 +138,6 @@ export const calculateWorkoutStreak = (workouts) => {
     } else if (diffDays > 1) {
       break; // Gap detected: streak ends here
     }
-    // Note: diffDays === 0 (multiple workouts on the same day) is skipped
   }
   
   return streak;

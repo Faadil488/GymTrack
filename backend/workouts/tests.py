@@ -145,3 +145,38 @@ class GymTrackAPITests(APITestCase):
         self.assertEqual(WorkoutSession.objects.count(), 0)
         self.assertEqual(Exercise.objects.count(), 0)
 
+    def test_date_validation(self):
+        from django.utils import timezone
+        from datetime import timedelta
+
+        self.set_auth_header(self.user_a_token)
+        workout_url = reverse('workout-list')
+        today = timezone.localdate()
+
+        # 1. Today is allowed
+        res_today = self.client.post(workout_url, {'date': str(today)}, format='json')
+        self.assertEqual(res_today.status_code, status.HTTP_201_CREATED)
+        workout_id = res_today.data['id']
+
+        # 2. Previous dates (e.g. 3 days ago, yesterday) are allowed
+        past_date = today - timedelta(days=3)
+        res_past = self.client.post(workout_url, {'date': str(past_date)}, format='json')
+        self.assertEqual(res_past.status_code, status.HTTP_201_CREATED)
+
+        # 3. Future dates (e.g. tomorrow, next week) are rejected with 400 Bad Request
+        future_date = today + timedelta(days=1)
+        res_future = self.client.post(workout_url, {'date': str(future_date)}, format='json')
+        self.assertEqual(res_future.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn('date', res_future.data)
+
+        # 4. Updating an existing workout to a future date is rejected
+        detail_url = reverse('workout-detail', kwargs={'pk': workout_id})
+        res_edit_future = self.client.patch(detail_url, {'date': str(future_date)}, format='json')
+        self.assertEqual(res_edit_future.status_code, status.HTTP_400_BAD_REQUEST)
+
+        # 5. Updating an existing workout to a past date is allowed
+        res_edit_past = self.client.patch(detail_url, {'date': str(past_date)}, format='json')
+        self.assertEqual(res_edit_past.status_code, status.HTTP_200_OK)
+        self.assertEqual(res_edit_past.data['date'], str(past_date))
+
+

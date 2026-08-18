@@ -1,4 +1,5 @@
 import { Trophy } from 'lucide-react';
+import { formatDateShort } from '../utils/workoutCalculations';
 
 const PersonalRecords = ({ records }) => {
   if (!records || records.length === 0) {
@@ -27,7 +28,7 @@ const PersonalRecords = ({ records }) => {
             <div>
               <span className="font-bold text-white block text-sm">{rec.name}</span>
               <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">
-                Logged {new Date(rec.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                Logged {formatDateShort(rec.date)}
               </span>
             </div>
             <div className="text-right">

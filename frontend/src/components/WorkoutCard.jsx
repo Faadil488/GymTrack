@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom';
 import { Calendar, ChevronRight, Dumbbell } from 'lucide-react';
-import { formatDateShort } from '../utils/workoutCalculations';
+import { formatDateDisplay } from '../utils/workoutCalculations';
 
 const WorkoutCard = ({ workout }) => {
   const { id, date, exercises = [] } = workout;
@@ -15,7 +15,7 @@ const WorkoutCard = ({ workout }) => {
         <div className="flex items-center gap-1.5 text-slate-500">
           <Calendar className="h-4 w-4 text-lime-400" />
           <span className="text-xxs font-black uppercase tracking-wider">
-            {new Date(date).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}
+            {formatDateDisplay(date, { weekday: 'short', month: 'short', day: 'numeric' })}
           </span>
         </div>
         
