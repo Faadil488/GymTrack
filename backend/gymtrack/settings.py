@@ -187,6 +187,11 @@ else:
         "http://127.0.0.1:5173",
     ]
 
+# Allow ALL Vercel preview and production deployment URLs
+CORS_ALLOWED_ORIGIN_REGEXES = [
+    r"^https://.*\.vercel\.app$",
+]
+
 csrf_trusted_env = os.getenv('CSRF_TRUSTED_ORIGINS')
 if csrf_trusted_env:
     CSRF_TRUSTED_ORIGINS = [o.strip() for o in csrf_trusted_env.split(',') if o.strip()]
